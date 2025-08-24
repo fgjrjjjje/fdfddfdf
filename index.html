@@ -7403,216 +7403,113 @@ document.head.appendChild(swipeStyle);
 </script>
 
 <script>
+// ... ваш существующий код ДО этого места ...
 
-// ===== СВАЙПЫ КАК В TELEGRAM =====
-var touchStartX = 0;
-var touchStartY = 0;
-var isSwiping = false;
-var currentPage = 'main';
-var nextPage = null;
+// ===== СВАЙПЫ МЕЖДУ СТРАНИЦАМИ =====
+let touchStartX = 0;
+let touchStartY = 0;
 
-// Инициализация свайпов
-function initTelegramSwipe() {
-    var mainPage = document.getElementById('main-page');
-    var cabinetPage = document.getElementById('cabinet-page');
-    var storagePage = document.getElementById('storage-page');
-    
-    if (mainPage && cabinetPage && storagePage) {
-        mainPage.style.transform = 'translateX(0)';
-        cabinetPage.style.transform = 'translateX(100%)';
-        storagePage.style.transform = 'translateX(-100%)';
-    }
+// Функция для определения текущей страницы
+function getCurrentPage() {
+  var mainPage = document.getElementById('main-page');
+  var cabinetPage = document.getElementById('cabinet-page');
+  var storagePage = document.getElementById('storage-page');
+  
+  if (mainPage && mainPage.style.display !== 'none') return 'main';
+  if (cabinetPage && cabinetPage.style.display !== 'none') return 'cabinet';
+  if (storagePage && storagePage.style.display !== 'none') return 'storage';
+  return 'main';
 }
 
-// Показ страницы с анимацией
-function showPage(page) {
-    var mainPage = document.getElementById('main-page');
-    var cabinetPage = document.getElementById('cabinet-page');
-    var storagePage = document.getElementById('storage-page');
-    
-    if (!mainPage || !cabinetPage || !storagePage) return;
-    
-    mainPage.style.transition = 'transform 0.3s ease';
-    cabinetPage.style.transition = 'transform 0.3s ease';
-    storagePage.style.transition = 'transform 0.3s ease';
-    
-    switch(page) {
-        case 'main':
-            mainPage.style.transform = 'translateX(0)';
-            cabinetPage.style.transform = 'translateX(100%)';
-            storagePage.style.transform = 'translateX(-100%)';
-            updateActiveNav(null);
-            break;
-        case 'cabinet':
-            mainPage.style.transform = 'translateX(-100%)';
-            cabinetPage.style.transform = 'translateX(0)';
-            storagePage.style.transform = 'translateX(-100%)';
-            var cabinetNav = document.getElementById('cabinet-nav-item');
-            if (cabinetNav) updateActiveNav(cabinetNav);
-            break;
-        case 'storage':
-            mainPage.style.transform = 'translateX(100%)';
-            cabinetPage.style.transform = 'translateX(100%)';
-            storagePage.style.transform = 'translateX(0)';
-            var storageNav = document.getElementById('storage-nav-item');
-            if (storageNav) updateActiveNav(storageNav);
-            break;
-    }
-    
-    currentPage = page;
-    
-    setTimeout(function() {
-        mainPage.style.transition = '';
-        cabinetPage.style.transition = '';
-        storagePage.style.transition = '';
-    }, 300);
+// Функция для обработки навигации
+function navigateToPage(direction) {
+  var current = getCurrentPage();
+  var cabinetNavItem = document.getElementById('cabinet-nav-item');
+  var storageNavItem = document.getElementById('storage-nav-item');
+  
+  if (current === 'main' && direction === 'right') {
+    showPage(cabinetPage);
+    if (cabinetNavItem) updateActiveNav(cabinetNavItem);
+  } else if (current === 'main' && direction === 'left') {
+    showPage(storagePage);
+    if (storageNavItem) updateActiveNav(storageNavItem);
+  } else if (current === 'cabinet' && direction === 'left') {
+    showPage(mainPage);
+    updateActiveNav(null);
+  } else if (current === 'storage' && direction === 'right') {
+    showPage(mainPage);
+    updateActiveNav(null);
+  }
 }
 
-// Обработчики для свайпов
-function handleTouchStart(e) {
-    var target = e.target;
-    var isInteractive = target.closest('input') || 
-                       target.closest('textarea') || 
-                       target.closest('button') || 
-                       target.closest('select') || 
-                       target.closest('a') || 
-                       target.closest('.product-card') || 
-                       target.closest('.cart-item');
-    
-    if (isInteractive) return;
-    
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    isSwiping = true;
-    
-    var mainPage = document.getElementById('main-page');
-    var cabinetPage = document.getElementById('cabinet-page');
-    var storagePage = document.getElementById('storage-page');
-    
-    if (mainPage) mainPage.style.transition = 'none';
-    if (cabinetPage) cabinetPage.style.transition = 'none';
-    if (storagePage) storagePage.style.transition = 'none';
-}
-
-function handleTouchMove(e) {
-    if (!isSwiping) return;
-    
-    var touchX = e.touches[0].clientX;
-    var touchY = e.touches[0].clientY;
-    var deltaX = touchX - touchStartX;
-    var deltaY = touchY - touchStartY;
-    
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-        e.preventDefault();
-        
-        var mainPage = document.getElementById('main-page');
-        var cabinetPage = document.getElementById('cabinet-page');
-        var storagePage = document.getElementById('storage-page');
-        
-        if (!mainPage || !cabinetPage || !storagePage) return;
-        
-        var maxSwipe = window.innerWidth * 0.8;
-        var swipeDistance = Math.max(Math.min(deltaX, maxSwipe), -maxSwipe);
-        var swipePercent = swipeDistance / window.innerWidth;
-        
-        switch(currentPage) {
-            case 'main':
-                if (swipeDistance > 0) {
-                    cabinetPage.style.transform = 'translateX(' + (100 - (100 * (1 - swipePercent))) + '%)';
-                    mainPage.style.transform = 'translateX(' + (swipePercent * 100) + '%)';
-                    nextPage = 'cabinet';
-                } else {
-                    storagePage.style.transform = 'translateX(' + (-100 + (100 * (1 + swipePercent))) + '%)';
-                    mainPage.style.transform = 'translateX(' + (swipePercent * 100) + '%)';
-                    nextPage = 'storage';
-                }
-                break;
-            case 'cabinet':
-                if (swipeDistance < 0) {
-                    mainPage.style.transform = 'translateX(' + (-100 + (100 * (1 + swipePercent))) + '%)';
-                    cabinetPage.style.transform = 'translateX(' + (swipePercent * 100) + '%)';
-                    nextPage = 'main';
-                }
-                break;
-            case 'storage':
-                if (swipeDistance > 0) {
-                    mainPage.style.transform = 'translateX(' + (100 - (100 * (1 - swipePercent))) + '%)';
-                    storagePage.style.transform = 'translateX(' + (swipePercent * 100) + '%)';
-                    nextPage = 'main';
-                }
-                break;
-        }
-    }
-}
-
-function handleTouchEnd(e) {
-    if (!isSwiping) return;
-    isSwiping = false;
-    
-    var touchX = e.changedTouches[0].clientX;
-    var deltaX = touchX - touchStartX;
-    
-    var mainPage = document.getElementById('main-page');
-    var cabinetPage = document.getElementById('cabinet-page');
-    var storagePage = document.getElementById('storage-page');
-    
-    if (!mainPage || !cabinetPage || !storagePage) return;
-    
-    mainPage.style.transition = 'transform 0.3s ease';
-    cabinetPage.style.transition = 'transform 0.3s ease';
-    storagePage.style.transition = 'transform 0.3s ease';
-    
-    var shouldComplete = Math.abs(deltaX) > window.innerWidth * 0.3;
-    
-    if (shouldComplete && nextPage) {
-        showPage(nextPage);
-        if (typeof triggerVibration === 'function') {
-            triggerVibration();
-        }
-    } else {
-        showPage(currentPage);
-    }
-    
-    nextPage = null;
-}
-
-// Добавляем обработчики событий
-document.addEventListener('touchstart', handleTouchStart);
-document.addEventListener('touchmove', handleTouchMove);
-document.addEventListener('touchend', handleTouchEnd);
-
-// Инициализируем свайпы при загрузке
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initTelegramSwipe, 100);
+// Обработчики касаний для свайпов
+document.addEventListener('touchstart', function(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
 });
 
-// Добавляем CSS стили
-var swipeStyles = '#main-page, #cabinet-page, #storage-page { transition: transform 0.3s ease; will-change: transform; } .swipe-hint { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; } .swipe-hint.show { opacity: 1; }';
+document.addEventListener('touchend', function(e) {
+  var touchEndX = e.changedTouches[0].clientX;
+  var touchEndY = e.changedTouches[0].clientY;
+  
+  var deltaX = touchEndX - touchStartX;
+  var deltaY = touchEndY - touchStartY;
+  
+  // Проверяем, что это был горизонтальный свайп
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    // Определяем направление свайпа
+    var direction = deltaX > 0 ? 'right' : 'left';
+    
+    // Отключаем свайпы на интерактивных элементах
+    var interactiveElements = ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'A'];
+    if (interactiveElements.includes(e.target.tagName) || 
+        e.target.closest('.product-card') || 
+        e.target.closest('.cart-item')) {
+      return;
+    }
+    
+    // Выполняем навигацию
+    navigateToPage(direction);
+    
+    // Вибрация для подтверждения действия
+    if (typeof triggerVibration === 'function') {
+      triggerVibration();
+    }
+    
+    // Предотвращаем стандартное поведение
+    e.preventDefault();
+  }
+});
 
+// Добавляем CSS для индикатора свайпа
+var swipeStyles = '.swipe-hint { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; } .swipe-hint.show { opacity: 1; }';
+
+// Добавляем стили в документ
 var styleElement = document.createElement('style');
 styleElement.textContent = swipeStyles;
 document.head.appendChild(styleElement);
 
-// Обновляем оригинальные функции навигации
-var mainPageElement = document.getElementById('main-page');
-var cabinetPageElement = document.getElementById('cabinet-page');
-var storagePageElement = document.getElementById('storage-page');
+// Показываем подсказку о возможности свайпа при первом посещении
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (!localStorage.getItem('swipeHintShown')) {
+      var swipeHint = document.createElement('div');
+      swipeHint.className = 'swipe-hint show';
+      swipeHint.textContent = 'Используйте свайпы для навигации';
+      document.body.appendChild(swipeHint);
+      
+      setTimeout(function() {
+        swipeHint.classList.remove('show');
+        setTimeout(function() {
+          swipeHint.remove();
+          localStorage.setItem('swipeHintShown', 'true');
+        }, 300);
+      }, 3000);
+    }
+  }, 2000);
+});
 
-if (typeof window.showPage === 'function') {
-    var originalShowPage = window.showPage;
-    window.showPage = function(pageElement) {
-        if (pageElement === mainPageElement) {
-            showPage('main');
-        } else if (pageElement === cabinetPageElement) {
-            showPage('cabinet');
-        } else if (pageElement === storagePageElement) {
-            showPage('storage');
-        } else {
-            originalShowPage(pageElement);
-        }
-    };
-}
-
+// ... ваш существующий код ПОСЛЕ этого места ...
 </script>
 
 </body>
