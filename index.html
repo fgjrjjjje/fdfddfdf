@@ -5665,6 +5665,83 @@ let currentProduct = null;
 let activeCategory = 'all';
 let currentSort = 'none';
 
+// ===== АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ КОРЗИНЫ =====
+
+// Загрузка корзины при запуске
+try {
+    const savedCart = localStorage.getItem('userCart');
+    if (savedCart) {
+        storageCart = JSON.parse(savedCart);
+        console.log("📦 Корзина загружена автоматически:", storageCart.length, "товаров");
+    }
+} catch (e) {
+    console.error("❌ Ошибка автоматической загрузки:", e);
+}
+
+// Автосохранение при изменении корзины
+function setupAutoSave() {
+    // Перехватываем функцию добавления товаров
+    const originalAddToStorageCart = window.addToStorageCart;
+    if (originalAddToStorageCart) {
+        window.addToStorageCart = function(product) {
+            const result = originalAddToStorageCart.apply(this, arguments);
+            
+            // Автосохранение
+            try {
+                localStorage.setItem('userCart', JSON.stringify(storageCart));
+                console.log("💾 Автосохранение: товар добавлен");
+            } catch (e) {
+                console.error("❌ Ошибка автосохранения:", e);
+            }
+            
+            return result;
+        };
+    }
+
+    // Перехватываем функцию изменения количества
+    const originalChangeQuantity = window.changeStorageQuantity;
+    if (originalChangeQuantity) {
+        window.changeStorageQuantity = function(productId, change) {
+            const result = originalChangeQuantity.apply(this, arguments);
+            
+            // Автосохранение
+            try {
+                localStorage.setItem('userCart', JSON.stringify(storageCart));
+                console.log("💾 Автосохранение: количество изменено");
+            } catch (e) {
+                console.error("❌ Ошибка автосохранения:", e);
+            }
+            
+            return result;
+        };
+    }
+
+    // Сохранение при закрытии страницы
+    window.addEventListener('beforeunload', function() {
+        try {
+            localStorage.setItem('userCart', JSON.stringify(storageCart));
+            console.log("💾 Автосохранение: страница закрывается");
+        } catch (e) {
+            console.error("❌ Ошибка автосохранения:", e);
+        }
+    });
+
+    // Периодическое автосохранение (каждые 30 секунд)
+    setInterval(function() {
+        try {
+            localStorage.setItem('userCart', JSON.stringify(storageCart));
+            console.log("💾 Автосохранение: периодическое");
+        } catch (e) {
+            console.error("❌ Ошибка автосохранения:", e);
+        }
+    }, 30000);
+}
+
+// Запускаем автосохранение
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(setupAutoSave, 1000);
+});
+
 // ===== ФУНКЦИИ ДЛЯ КОРЗИНЫ =====
 function addToCart(productId) {
   const product = productsData.find(p => p.id === productId);
@@ -6404,28 +6481,26 @@ function getDefaultCart() {
 
 // Инициализация страницы склада
 function initStoragePage() {
-  console.log("Инициализация страницы склада");
-  
-  try {
-    const savedCart = localStorage.getItem('storageCart');
-    if (savedCart) {
-      storageCart = JSON.parse(savedCart); // ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩУЮ ПЕРЕМЕННУЮ
-      console.log("Загружено товаров:", storageCart.length);
-    } else {
-      storageCart = [];
-      console.log("Корзина пуста");
+    console.log("Инициализация страницы склада");
+    
+    // Автоматически загружаем корзину
+    try {
+        const savedCart = localStorage.getItem('userCart');
+        if (savedCart) {
+            storageCart = JSON.parse(savedCart);
+            console.log("Загружено товаров:", storageCart.length);
+        } else {
+            storageCart = [];
+            console.log("Корзина пуста");
+        }
+    } catch (e) {
+        console.error("Ошибка загрузки корзины:", e);
+        storageCart = [];
     }
-  } catch (e) {
-    console.error("Ошибка загрузки корзины:", e);
-    storageCart = [];
-  }
-  
-  renderStorageCart();
-  updateStorageTotal();
-  updateStorageBadge();
-  
-  // Остальной твой код инициализации...
-  setupStorageEventListeners();
+    
+    renderStorageCart();
+    updateStorageTotal();
+    updateStorageBadge();
 }
 
     // Настройка обработчиков событий
