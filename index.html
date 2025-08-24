@@ -7161,25 +7161,26 @@ function forceSaveCart() {
 
 // Вызывай после каждого изменения корзины
 
+
 // ===== TELEGRAM CLOUD STORAGE ФУНКЦИИ =====
 function saveToTelegramStorage(key, value, callback) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.CloudStorage) {
-        Telegram.WebApp.CloudStorage.setItem(key, JSON.stringify(value), (err) => {
+        Telegram.WebApp.CloudStorage.setItem(key, JSON.stringify(value), function(err) {
             if (err) {
-                console.error('❌ Ошибка Telegram Storage:', err);
+                console.error('Ошибка Telegram Storage:', err);
                 if (callback) callback(false);
             } else {
-                console.log('✅ Сохранено в Telegram Cloud');
+                console.log('Сохранено в Telegram Cloud');
                 if (callback) callback(true);
             }
         });
     } else {
-        console.log('ℹ️ Telegram Storage недоступен, используем localStorage');
+        console.log('Telegram Storage недоступен, используем localStorage');
         try {
             localStorage.setItem(key, JSON.stringify(value));
             if (callback) callback(true);
         } catch (e) {
-            console.error('❌ Ошибка localStorage:', e);
+            console.error('Ошибка localStorage:', e);
             if (callback) callback(false);
         }
     }
@@ -7187,16 +7188,16 @@ function saveToTelegramStorage(key, value, callback) {
 
 function loadFromTelegramStorage(key, callback) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.CloudStorage) {
-        Telegram.WebApp.CloudStorage.getItem(key, (err, data) => {
+        Telegram.WebApp.CloudStorage.getItem(key, function(err, data) {
             if (err) {
-                console.log('ℹ️ Данных в Telegram Storage нет');
+                console.log('Данных в Telegram Storage нет');
                 if (callback) callback([]);
             } else if (data) {
                 try {
                     const parsed = JSON.parse(data);
                     if (callback) callback(parsed);
                 } catch (e) {
-                    console.error('❌ Ошибка парсинга:', e);
+                    console.error('Ошибка парсинга:', e);
                     if (callback) callback([]);
                 }
             } else {
@@ -7204,29 +7205,29 @@ function loadFromTelegramStorage(key, callback) {
             }
         });
     } else {
-        console.log('ℹ️ Telegram Storage недоступен, используем localStorage');
+        console.log('Telegram Storage недоступен, используем localStorage');
         try {
             const data = localStorage.getItem(key);
             if (callback) callback(data ? JSON.parse(data) : []);
         } catch (e) {
-            console.error('❌ Ошибка localStorage:', e);
+            console.error('Ошибка localStorage:', e);
             if (callback) callback([]);
         }
     }
 }
 
 // ===== ГЛОБАЛЬНАЯ КОРЗИНА ДЛЯ МГНОВЕННОГО ОТОБРАЖЕНИЯ =====
-let globalCart = [];
+var globalCart = [];
 
 // ===== ОБНОВЛЕННАЯ ФУНКЦИЯ ДОБАВЛЕНИЯ В КОРЗИНУ =====
 function addToCart(productId) {
-    const product = productsData.find(p => p.id === productId);
+    var product = productsData.find(function(p) { return p.id === productId; });
     if (!product) return;
     
-    console.log('🛒 Добавляем товар:', product.title);
+    console.log('Добавляем товар:', product.title);
     
-    // 1. СНАЧАЛА ДОБАВЛЯЕМ В ГЛОБАЛЬНУЮ КОРЗИНУ (мгновенное отображение)
-    const existingItem = globalCart.find(item => item.id === product.id);
+    // 1. СНАЧАЛА ДОБАВЛЯЕМ В ГЛОБАЛЬНУЮ КОРЗИНУ
+    var existingItem = globalCart.find(function(item) { return item.id === product.id; });
     
     if (existingItem) {
         existingItem.quantity += 1;
@@ -7244,7 +7245,7 @@ function addToCart(productId) {
     }
     
     // 2. МГНОВЕННО ОБНОВЛЯЕМ ИНТЕРФЕЙС
-    showToast('Товар добавлен! ✅');
+    showToast('Товар добавлен!');
     triggerVibration();
     updateCartIconCount();
     
@@ -7253,95 +7254,89 @@ function addToCart(productId) {
         renderStorageCart();
     }
     
-    // 4. ПОТОМ СОХРАНЯЕМ В ХРАНИЛИЩЕ (в фоне)
-    saveToTelegramStorage('storageCart', globalCart, (success) => {
+    // 4. ПОТОМ СОХРАНЯЕМ В ХРАНИЛИЩЕ
+    saveToTelegramStorage('storageCart', globalCart, function(success) {
         if (success) {
-            console.log('✅ Корзина сохранена');
+            console.log('Корзина сохранена');
         } else {
-            console.log('⚠️ Корзина не сохранена, но отображается');
+            console.log('Корзина не сохранена, но отображается');
         }
     });
 }
 
 // ===== ОБНОВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ СКЛАДА =====
 function initStoragePage() {
-    console.log('📦 Инициализация склада');
+    console.log('Инициализация склада');
     
-    // 1. СНАЧАЛА ПОКАЗЫВАЕМ ГЛОБАЛЬНУЮ КОРЗИНУ (мгновенно)
+    // 1. СНАЧАЛА ПОКАЗЫВАЕМ ГЛОБАЛЬНУЮ КОРЗИНУ
     if (globalCart.length > 0) {
         window.storageCart = globalCart;
         renderStorageCart();
+        updateStorageTotal();
 
-updateStorageTotal();
-        updateStorageBadge();
-        console.log('📦 Показана глобальная корзина:', globalCart.length, 'товаров');
+updateStorageBadge();
+        console.log('Показана глобальная корзина:', globalCart.length, 'товаров');
     }
     
-    // 2. ПОТОМ ЗАГРУЖАЕМ ИЗ ХРАНИЛИЩА (в фоне)
-    loadFromTelegramStorage('storageCart', (cart) => {
+    // 2. ПОТОМ ЗАГРУЖАЕМ ИЗ ХРАНИЛИЩА
+    loadFromTelegramStorage('storageCart', function(cart) {
         if (cart.length > 0) {
             window.storageCart = cart;
-            globalCart = cart; // Обновляем глобальную корзину
+            globalCart = cart;
             renderStorageCart();
             updateStorageTotal();
             updateStorageBadge();
-            console.log('📦 Загружено из хранилища:', cart.length, 'товаров');
+            console.log('Загружено из хранилища:', cart.length, 'товаров');
         }
     });
 }
 
 // ===== ОБНОВЛЕННЫЙ RENDER STORAGE CART =====
 function renderStorageCart() {
-    const cartItemsContainer = document.getElementById('cart-items');
+    var cartItemsContainer = document.getElementById('cart-items');
     if (!cartItemsContainer) {
-        console.error('❌ Контейнер корзины не найден');
+        console.error('Контейнер корзины не найден');
         return;
     }
     
     cartItemsContainer.innerHTML = '';
     
-    const cartToRender = window.storageCart  globalCart  [];
+    var cartToRender = `window.storageCart  globalCart  []`;
     
     if (cartToRender.length === 0) {
-        cartItemsContainer.innerHTML = 
-            <div class="empty-cart">
-                <i class="fas fa-shopping-cart"></i>
-                <h3>Корзина пуста</h3>
-                <p>Добавьте товары из каталога</p>
-            </div>
-        ;
+        cartItemsContainer.innerHTML = '<div class="empty-cart"><i class="fas fa-shopping-cart"></i><h3>Корзина пуста</h3><p>Добавьте товары из каталога</p></div>';
         return;
     }
     
-    console.log('🎨 Рендерим корзину:', cartToRender.length, 'товаров');
+    console.log('Рендерим корзину:', cartToRender.length, 'товаров');
     
     // Рендерим каждый товар
-    cartToRender.forEach((product, index) => {
-        const cartItem = document.createElement('div');
+    cartToRender.forEach(function(product, index) {
+        var cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
-        cartItem.innerHTML = 
-            <img src="${product.image}" alt="${product.name}" class="item-image">
-            <div class="item-details">
-                <div class="item-category">${product.category}</div>
-                <h3 class="item-name">${product.name}</h3>
-                <div class="item-price">${product.price.toLocaleString()} ₽</div>
-                <div class="item-total">${(product.price * product.quantity).toLocaleString()} ₽</div>
-                <div class="stock-info in-stock">В наличии</div>
-                <div class="item-quantity">
-                    <button class="quantity-btn minus" onclick="changeStorageQuantity(${product.id}, -1)">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <span class="quantity-value">${product.quantity}</span>
-                    <button class="quantity-btn plus" onclick="changeStorageQuantity(${product.id}, 1)">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-            <button class="favorite-btn" onclick="toggleFavorite(${product.id})">
-                <i class="fas fa-heart"></i>
-            </button>
-        ;
         
+        var itemHTML = '<img src="' + product.image + '" alt="' + product.name + '" class="item-image">';
+        itemHTML += '<div class="item-details">';
+        itemHTML += '<div class="item-category">' + product.category + '</div>';
+        itemHTML += '<h3 class="item-name">' + product.name + '</h3>';
+        itemHTML += '<div class="item-price">' + product.price.toLocaleString() + ' ₽</div>';
+        itemHTML += '<div class="item-total">' + (product.price * product.quantity).toLocaleString() + ' ₽</div>';
+        itemHTML += '<div class="stock-info in-stock">В наличии</div>';
+        itemHTML += '<div class="item-quantity">';
+        itemHTML += '<button class="quantity-btn minus" onclick="changeStorageQuantity(' + product.id + ', -1)">';
+        itemHTML += '<i class="fas fa-minus"></i>';
+        itemHTML += '</button>';
+        itemHTML += '<span class="quantity-value">' + product.quantity + '</span>';
+        itemHTML += '<button class="quantity-btn plus" onclick="changeStorageQuantity(' + product.id + ', 1)">';
+        itemHTML += '<i class="fas fa-plus"></i>';
+        itemHTML += '</button>';
+        itemHTML += '</div>';
+        itemHTML += '</div>';
+        itemHTML += '<button class="favorite-btn" onclick="toggleFavorite(' + product.id + ')">';
+        itemHTML += '<i class="fas fa-heart"></i>';
+        itemHTML += '</button>';
+        
+        cartItem.innerHTML = itemHTML;
         cartItemsContainer.appendChild(cartItem);
     });
     
@@ -7350,12 +7345,14 @@ function renderStorageCart() {
 
 // ===== ОБНОВЛЕННЫЙ UPDATE CART ICON COUNT =====
 function updateCartIconCount() {
-    const cartIcon = document.getElementById('cartIcon');
+    var cartIcon = document.getElementById('cartIcon');
     if (!cartIcon) return;
     
-    const totalItems = globalCart.reduce((total, item) => total + item.quantity, 0);
+    var totalItems = globalCart.reduce(function(total, item) {
+        return total + item.quantity;
+    }, 0);
     
-    let countBadge = cartIcon.querySelector('.cart-count-badge');
+    var countBadge = cartIcon.querySelector('.cart-count-badge');
     if (!countBadge) {
         countBadge = document.createElement('div');
         countBadge.className = 'cart-count-badge';
@@ -7365,7 +7362,7 @@ function updateCartIconCount() {
     countBadge.textContent = totalItems;
     countBadge.style.display = totalItems > 0 ? 'flex' : 'none';
     
-    console.log('🔢 Обновлен счетчик:', totalItems, 'товаров');
+    console.log('Обновлен счетчик:', totalItems, 'товаров');
 }
 
 // ===== ПРОВЕРКА РАБОТЫ =====
@@ -7379,8 +7376,6 @@ function testCart() {
         addToCart(1);
     }
 }
-
-// Вызови в консоли: testCart()
 </script>
 </body>
 </html>
